@@ -1,10 +1,12 @@
 "use client";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Question, QuestionType, pollStorage } from "@/types/poll";
 
 import { 
   Plus, 
@@ -21,23 +23,13 @@ import {
   Copy
 } from "lucide-react";
 
-type QuestionType = 'text' | 'multiple-choice' | 'rating' | 'ranking' | 'date' | 'file' | 'custom';
-
-interface Question {
-  id: string;
-  type: QuestionType;
-  title: string;
-  description?: string;
-  required: boolean;
-  options?: string[];
-  settings?: any;
-}
-
 export default function NewPollPage() {
+  const router = useRouter();
   const [pollTitle, setPollTitle] = useState("");
   const [pollDescription, setPollDescription] = useState("");
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestionType, setCurrentQuestionType] = useState<QuestionType>('text');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const questionTypes = [
     { type: 'text', label: 'Text Response', icon: Type, description: 'Open-ended text answers' },
@@ -57,7 +49,7 @@ export default function NewPollPage() {
       description: "",
       required: true,
       options: currentQuestionType === 'multiple-choice' || currentQuestionType === 'ranking' ? [''] : undefined,
-      settings: {}
+      settings: currentQuestionType === 'rating' ? { min: 1, max: 5 } : {}
     };
     setQuestions([...questions, newQuestion]);
   };
@@ -91,6 +83,56 @@ export default function NewPollPage() {
     if (question && question.options && question.options.length > 1) {
       const newOptions = question.options.filter((_, index) => index !== optionIndex);
       updateQuestion(questionId, { options: newOptions });
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!pollTitle.trim()) {
+      alert('Please enter a poll title');
+      return;
+    }
+
+    if (questions.length === 0) {
+      alert('Please add at least one question');
+      return;
+    }
+
+    // Validate questions
+    for (const question of questions) {
+      if (!question.title.trim()) {
+        alert(`Please enter a title for the ${questionTypes.find(t => t.type === question.type)?.label} question`);
+        return;
+      }
+      
+      if ((question.type === 'multiple-choice' || question.type === 'ranking') && 
+          (!question.options || question.options.some(opt => !opt.trim()))) {
+        alert(`Please fill in all options for the "${question.title}" question`);
+        return;
+      }
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Create the poll
+      const newPoll = pollStorage.createPoll({
+        title: pollTitle,
+        description: pollDescription,
+        questions: questions.map(q => ({
+          ...q,
+          options: q.options?.filter(opt => opt.trim()) // Remove empty options
+        }))
+      });
+
+      // Redirect to the poll
+      router.push(`/polls/${newPoll.id}`);
+    } catch (error) {
+      console.error('Error creating poll:', error);
+      alert('Failed to create poll. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -189,7 +231,10 @@ export default function NewPollPage() {
                   <Input
                     id={`min-${question.id}`}
                     type="number"
-                    defaultValue="1"
+                    value={question.settings?.min || 1}
+                    onChange={(e) => updateQuestion(question.id, { 
+                      settings: { ...question.settings, min: parseInt(e.target.value) || 1 }
+                    })}
                     className="text-base"
                   />
                 </div>
@@ -198,7 +243,10 @@ export default function NewPollPage() {
                   <Input
                     id={`max-${question.id}`}
                     type="number"
-                    defaultValue="5"
+                    value={question.settings?.max || 5}
+                    onChange={(e) => updateQuestion(question.id, { 
+                      settings: { ...question.settings, max: parseInt(e.target.value) || 5 }
+                    })}
                     className="text-base"
                   />
                 </div>
@@ -231,95 +279,97 @@ export default function NewPollPage() {
             <p className="text-gray-600">Design any type of poll with complete creative freedom</p>
           </div>
           
-          {/* Poll Settings */}
-          <Card className="card-gradient mb-8">
-            <CardHeader>
-              <CardTitle className="text-xl">Poll Settings</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="poll-title">Poll Title *</Label>
-                <Input
-                  id="poll-title"
-                  value={pollTitle}
-                  onChange={(e) => setPollTitle(e.target.value)}
-                  placeholder="What's your poll about?"
-                  className="text-base"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="poll-description">Description</Label>
-                <Textarea
-                  id="poll-description"
-                  value={pollDescription}
-                  onChange={(e) => setPollDescription(e.target.value)}
-                  placeholder="Provide context or instructions for your poll..."
-                  className="min-h-[100px] text-base"
-                />
-              </div>
-            </CardContent>
-          </Card>
+          <form onSubmit={handleSubmit}>
+            {/* Poll Settings */}
+            <Card className="card-gradient mb-8">
+              <CardHeader>
+                <CardTitle className="text-xl">Poll Settings</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="poll-title">Poll Title *</Label>
+                  <Input
+                    id="poll-title"
+                    value={pollTitle}
+                    onChange={(e) => setPollTitle(e.target.value)}
+                    placeholder="What's your poll about?"
+                    className="text-base"
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="poll-description">Description</Label>
+                  <Textarea
+                    id="poll-description"
+                    value={pollDescription}
+                    onChange={(e) => setPollDescription(e.target.value)}
+                    placeholder="Provide context or instructions for your poll..."
+                    className="min-h-[100px] text-base"
+                  />
+                </div>
+              </CardContent>
+            </Card>
 
-          {/* Question Type Selector */}
-          <Card className="card-gradient mb-8">
-            <CardHeader>
-              <CardTitle className="text-xl">Add Questions</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
-                {questionTypes.map((type) => {
-                  const IconComponent = type.icon;
-                  return (
-                    <button
-                      key={type.type}
-                      onClick={() => setCurrentQuestionType(type.type as QuestionType)}
-                      className={`p-4 rounded-brand border-2 transition-all duration-200 ${
-                        currentQuestionType === type.type
-                          ? 'border-cyan-500 bg-cyan-50 text-cyan-700'
-                          : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                      }`}
-                    >
-                      <IconComponent className="w-6 h-6 mx-auto mb-2" />
-                      <div className="text-sm font-medium">{type.label}</div>
-                      <div className="text-xs text-gray-500 mt-1">{type.description}</div>
-                    </button>
-                  );
-                })}
+            {/* Question Type Selector */}
+            <Card className="card-gradient mb-8">
+              <CardHeader>
+                <CardTitle className="text-xl">Add Questions</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
+                  {questionTypes.map((type) => {
+                    const IconComponent = type.icon;
+                    return (
+                      <button
+                        key={type.type}
+                        type="button"
+                        onClick={() => setCurrentQuestionType(type.type as QuestionType)}
+                        className={`p-4 rounded-brand border-2 transition-all duration-200 ${
+                          currentQuestionType === type.type
+                            ? 'border-cyan-500 bg-cyan-50 text-cyan-700'
+                            : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        <IconComponent className="w-6 h-6 mx-auto mb-2" />
+                        <div className="text-sm font-medium">{type.label}</div>
+                        <div className="text-xs text-gray-500 mt-1">{type.description}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+                
+                <Button type="button" onClick={addQuestion} className="w-full" size="lg">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add {questionTypes.find(t => t.type === currentQuestionType)?.label} Question
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Questions List */}
+            {questions.length > 0 && (
+              <div className="mb-8">
+                <h2 className="text-2xl font-bold text-navy-900 mb-6">
+                  Your Questions ({questions.length})
+                </h2>
+                {questions.map(renderQuestionBuilder)}
               </div>
-              
-              <Button onClick={addQuestion} className="w-full" size="lg">
-                <Plus className="w-4 h-4 mr-2" />
-                Add {questionTypes.find(t => t.type === currentQuestionType)?.label} Question
+            )}
+
+            {/* Actions */}
+            <div className="flex gap-4 justify-center">
+              <Button type="submit" size="lg" className="px-8" disabled={isSubmitting}>
+                <Save className="w-4 h-4 mr-2" />
+                {isSubmitting ? 'Creating...' : 'Create Poll'}
               </Button>
-            </CardContent>
-          </Card>
-
-          {/* Questions List */}
-          {questions.length > 0 && (
-            <div className="mb-8">
-              <h2 className="text-2xl font-bold text-navy-900 mb-6">
-                Your Questions ({questions.length})
-              </h2>
-              {questions.map(renderQuestionBuilder)}
+              <Button type="button" variant="secondary" size="lg" className="px-8">
+                <Eye className="w-4 h-4 mr-2" />
+                Preview Poll
+              </Button>
             </div>
-          )}
-
-          {/* Actions */}
-          <div className="flex gap-4 justify-center">
-            <Button size="lg" className="px-8">
-              <Save className="w-4 h-4 mr-2" />
-              Create Poll
-            </Button>
-            <Button variant="secondary" size="lg" className="px-8">
-              <Eye className="w-4 h-4 mr-2" />
-              Preview Poll
-            </Button>
-          </div>
+          </form>
         </div>
       </div>
     </main>
   );
 }
-
-

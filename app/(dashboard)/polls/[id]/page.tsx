@@ -1,311 +1,356 @@
 "use client";
-import { useState } from "react";
+import { BarChart3, CheckCircle, Clock, Eye, List, Share2, Star, Users, Vote } from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Poll, Question, pollStorage } from "@/types/poll";
 
-import { 
-  Vote, 
-  BarChart3, 
-  Users, 
-  Clock, 
-  Share2, 
-  Eye, 
-  Star,
-  Calendar,
-  Image,
-  Type,
-  CheckSquare,
-  List
-} from "lucide-react";
-
-type Params = { params: { id: string } };
-
-type QuestionType = 'text' | 'multiple-choice' | 'rating' | 'ranking' | 'date' | 'file' | 'custom';
-
-interface Question {
-  id: string;
-  type: QuestionType;
-  title: string;
-  description?: string;
-  required: boolean;
-  options?: string[];
-  settings?: any;
-}
-
-export default function PollDetailPage({ params }: Params) {
-  const { id } = params;
+export default function PollDetailPage() {
+  const params = useParams();
+  const router = useRouter();
+  const [poll, setPoll] = useState<Poll | null>(null);
   const [responses, setResponses] = useState<Record<string, any>>({});
-  
-  // Mock poll data with multiple question types
-  const poll = {
-    id,
-    title: "Employee Satisfaction Survey",
-    description: "Help us improve our workplace by sharing your honest feedback",
-    questions: [
-      {
-        id: "1",
-        type: "multiple-choice" as QuestionType,
-        title: "How satisfied are you with your current role?",
-        description: "Please select the option that best describes your satisfaction level",
-        required: true,
-        options: ["Very Satisfied", "Satisfied", "Neutral", "Dissatisfied", "Very Dissatisfied"]
-      },
-      {
-        id: "2", 
-        type: "rating" as QuestionType,
-        title: "Rate your work-life balance",
-        description: "On a scale of 1-10, how would you rate your work-life balance?",
-        required: true,
-        settings: { min: 1, max: 10 }
-      },
-      {
-        id: "3",
-        type: "text" as QuestionType,
-        title: "What's the best part about working here?",
-        description: "Share what you love most about our company culture",
-        required: false
-      },
-      {
-        id: "4",
-        type: "ranking" as QuestionType,
-        title: "Rank these benefits by importance",
-        description: "Drag to reorder from most important (top) to least important (bottom)",
-        required: true,
-        options: ["Health Insurance", "Flexible Hours", "Remote Work", "Professional Development", "Gym Membership"]
-      },
-      {
-        id: "5",
-        type: "date" as QuestionType,
-        title: "When would you prefer our next team building event?",
-        description: "Select your preferred date range",
-        required: false
-      }
-    ]
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [showResults, setShowResults] = useState(false);
+
+  useEffect(() => {
+    const pollId = params.id as string;
+    const foundPoll = pollStorage.getPoll(pollId);
+    if (foundPoll) {
+      setPoll(foundPoll);
+    } else {
+      // Poll not found, redirect to polls list
+      router.push('/polls');
+    }
+  }, [params.id, router]);
+
+  const handleResponseChange = (questionId: string, value: any) => {
+    setResponses(prev => ({
+      ...prev,
+      [questionId]: value
+    }));
   };
 
-  const updateResponse = (questionId: string, value: any) => {
-    setResponses(prev => ({ ...prev, [questionId]: value }));
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!poll) return;
+
+    // Validate required questions
+    for (const question of poll.questions) {
+      if (question.required && !responses[question.id]) {
+        alert(`Please answer the required question: "${question.title}"`);
+        return;
+      }
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Submit response
+      pollStorage.submitResponse(poll.id, responses);
+      setIsSubmitted(true);
+      setShowResults(true);
+    } catch (error) {
+      console.error('Error submitting response:', error);
+      alert('Failed to submit response. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const renderQuestion = (question: Question) => {
-    const getIcon = (type: QuestionType) => {
-      switch (type) {
-        case 'text': return Type;
-        case 'multiple-choice': return CheckSquare;
-        case 'rating': return Star;
-        case 'ranking': return List;
-        case 'date': return Calendar;
-        case 'file': return Image;
-        default: return Type;
-      }
-    };
+    const response = responses[question.id];
 
-    const IconComponent = getIcon(question.type);
+    switch (question.type) {
+      case 'text':
+        return (
+          <Textarea
+            value={response || ''}
+            onChange={(e) => handleResponseChange(question.id, e.target.value)}
+            placeholder="Enter your answer..."
+            className="min-h-[100px]"
+            required={question.required}
+          />
+        );
 
-    return (
-      <Card key={question.id} className="mb-6 card-gradient">
-        <CardHeader>
-          <div className="flex items-center gap-3 mb-2">
-            <IconComponent className="w-5 h-5 text-cyan-600" />
-            <CardTitle className="text-xl text-navy-900">{question.title}</CardTitle>
-            {question.required && <span className="text-red-500 text-sm">*</span>}
+      case 'multiple-choice':
+        return (
+          <div className="space-y-2">
+            {question.options?.map((option, index) => (
+              <label key={index} className="flex items-center space-x-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer">
+                <input
+                  type="radio"
+                  name={question.id}
+                  value={option}
+                  checked={response === option}
+                  onChange={(e) => handleResponseChange(question.id, e.target.value)}
+                  className="text-cyan-500 focus:ring-cyan-500"
+                  required={question.required}
+                />
+                <span className="text-gray-700">{option}</span>
+              </label>
+            ))}
           </div>
-          {question.description && (
-            <CardDescription className="text-base">{question.description}</CardDescription>
-          )}
-        </CardHeader>
-        <CardContent>
-          {question.type === 'text' && (
-            <Textarea
-              value={responses[question.id] || ''}
-              onChange={(e) => updateResponse(question.id, e.target.value)}
-              placeholder="Share your thoughts..."
-              className="min-h-[100px]"
-            />
-          )}
+        );
 
-          {question.type === 'multiple-choice' && (
-            <div className="space-y-3">
-              {question.options?.map((option, index) => (
-                <label key={index} className="flex items-center space-x-3 p-4 border border-gray-200 rounded-brand hover:border-cyan-300 hover:bg-gradient-to-r hover:from-cyan-50 hover:to-transparent cursor-pointer transition-all duration-300 group">
-                  <input 
-                    type="radio" 
-                    name={`question-${question.id}`}
-                    value={option}
-                    onChange={(e) => updateResponse(question.id, e.target.value)}
-                    className="text-cyan-500 focus:ring-cyan-500" 
-                  />
-                  <span className="text-gray-900 font-medium group-hover:text-navy-900">{option}</span>
-                </label>
-              ))}
+      case 'rating':
+        const min = question.settings?.min || 1;
+        const max = question.settings?.max || 5;
+        return (
+          <div className="space-y-3">
+            <div className="flex justify-between text-sm text-gray-600">
+              <span>{min}</span>
+              <span>{max}</span>
             </div>
-          )}
-
-          {question.type === 'rating' && (
-            <div className="space-y-4">
-              <div className="flex justify-center space-x-2">
-                {Array.from({ length: question.settings?.max || 5 }, (_, i) => i + 1).map((rating) => (
+            <div className="flex gap-2">
+              {Array.from({ length: max - min + 1 }, (_, i) => {
+                const value = min + i;
+                return (
                   <button
-                    key={rating}
-                    onClick={() => updateResponse(question.id, rating)}
-                    className={`w-12 h-12 rounded-brand border-2 transition-all duration-200 ${
-                      responses[question.id] === rating
-                        ? 'border-cyan-500 bg-cyan-50 text-cyan-600'
-                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                    key={value}
+                    type="button"
+                    onClick={() => handleResponseChange(question.id, value)}
+                    className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all ${
+                      response === value
+                        ? 'border-cyan-500 bg-cyan-500 text-white'
+                        : 'border-gray-300 hover:border-gray-400'
                     }`}
                   >
-                    <Star className={`w-6 h-6 mx-auto ${responses[question.id] === rating ? 'fill-current' : ''}`} />
+                    {value}
                   </button>
+                );
+              })}
+            </div>
+          </div>
+        );
+
+      case 'ranking':
+        return (
+          <div className="space-y-2">
+            <p className="text-sm text-gray-600 mb-3">Drag to reorder (or select in order of preference):</p>
+            {question.options?.map((option, index) => (
+              <div key={index} className="flex items-center space-x-3 p-3 rounded-lg border border-gray-200">
+                <span className="text-sm text-gray-500 w-8">#{index + 1}</span>
+                <span className="flex-1 text-gray-700">{option}</span>
+                <input
+                  type="number"
+                  min="1"
+                  max={question.options?.length}
+                  value={response?.[option] || index + 1}
+                  onChange={(e) => {
+                    const newResponse = { ...response };
+                    newResponse[option] = parseInt(e.target.value);
+                    handleResponseChange(question.id, newResponse);
+                  }}
+                  className="w-16 px-2 py-1 border border-gray-300 rounded text-center"
+                />
+              </div>
+            ))}
+          </div>
+        );
+
+      case 'date':
+        return (
+          <Input
+            type="date"
+            value={response || ''}
+            onChange={(e) => handleResponseChange(question.id, e.target.value)}
+            required={question.required}
+          />
+        );
+
+      case 'file':
+        return (
+          <div className="space-y-3">
+            <Input
+              type="file"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  handleResponseChange(question.id, file.name);
+                }
+              }}
+              required={question.required}
+            />
+            {response && (
+              <p className="text-sm text-green-600">✓ File selected: {response}</p>
+            )}
+          </div>
+        );
+
+      default:
+        return (
+          <Input
+            value={response || ''}
+            onChange={(e) => handleResponseChange(question.id, e.target.value)}
+            placeholder="Enter your answer..."
+            required={question.required}
+          />
+        );
+    }
+  };
+
+  const renderResults = () => {
+    if (!poll) return null;
+
+    return (
+      <div className="space-y-6">
+        <h3 className="text-xl font-semibold text-navy-900">Poll Results</h3>
+        {poll.questions.map((question) => (
+          <Card key={question.id} className="card-gradient">
+            <CardHeader>
+              <CardTitle className="text-lg">{question.title}</CardTitle>
+              {question.description && (
+                <CardDescription>{question.description}</CardDescription>
+              )}
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {poll.responses.map((response, index) => (
+                  <div key={index} className="p-3 bg-gray-50 rounded-lg">
+                    <p className="text-sm text-gray-600 mb-1">Response #{index + 1}</p>
+                    <p className="text-gray-800">
+                      {question.type === 'rating' 
+                        ? `${response.responses[question.id]} / ${question.settings?.max || 5}`
+                        : question.type === 'ranking'
+                        ? Object.entries(response.responses[question.id] || {})
+                            .sort(([,a], [,b]) => (a as number) - (b as number))
+                            .map(([option]) => option)
+                            .join(' → ')
+                        : response.responses[question.id] || 'No response'
+                      }
+                    </p>
+                  </div>
                 ))}
               </div>
-              <div className="flex justify-between text-sm text-gray-500">
-                <span>{question.settings?.min || 1}</span>
-                <span>{question.settings?.max || 5}</span>
-              </div>
-            </div>
-          )}
-
-          {question.type === 'ranking' && (
-            <div className="space-y-3">
-              <p className="text-sm text-gray-600 mb-4">Drag to reorder (most important at top)</p>
-              {question.options?.map((option, index) => (
-                <div key={index} className="flex items-center space-x-3 p-3 border border-gray-200 rounded-brand bg-gray-50">
-                  <div className="w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center text-xs font-bold text-gray-600">
-                    {index + 1}
-                  </div>
-                  <span className="text-gray-900 font-medium">{option}</span>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {question.type === 'date' && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
-                  <Input
-                    type="date"
-                    onChange={(e) => updateResponse(question.id, { ...responses[question.id], start: e.target.value })}
-                    className="text-base"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">End Date</label>
-                  <Input
-                    type="date"
-                    onChange={(e) => updateResponse(question.id, { ...responses[question.id], end: e.target.value })}
-                    className="text-base"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     );
   };
+
+  if (!poll) {
+    return (
+      <main className="min-h-screen bg-texture">
+        <div className="container-max py-12 px-4">
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-600 mx-auto"></div>
+              <p className="text-gray-600 mt-4">Loading poll...</p>
+            </div>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-texture">
       <div className="container-max py-12 px-4">
         <div className="max-w-4xl mx-auto">
+          {/* Header */}
           <div className="mb-8">
-            <h1 className="text-4xl font-bold text-navy-900 tracking-wide mb-2">{poll.title}</h1>
-            <p className="text-gray-600">{poll.description}</p>
-          </div>
-          
-          <form className="space-y-6">
-            {poll.questions.map(renderQuestion)}
+            <div className="flex items-center justify-between mb-4">
+              <h1 className="text-3xl font-bold text-navy-900">{poll.title}</h1>
+              <div className="flex gap-2">
+                <Button variant="secondary" size="sm">
+                  <Share2 className="w-4 h-4 mr-2" />
+                  Share
+                </Button>
+                <Button 
+                  variant="secondary" 
+                  size="sm"
+                  onClick={() => setShowResults(!showResults)}
+                >
+                  <BarChart3 className="w-4 h-4 mr-2" />
+                  {showResults ? 'Hide' : 'Show'} Results
+                </Button>
+              </div>
+            </div>
             
-            <Card className="card-gradient">
-              <CardContent className="py-6">
+            {poll.description && (
+              <p className="text-gray-600 text-lg mb-6">{poll.description}</p>
+            )}
+
+            {/* Poll Stats */}
+            <div className="grid grid-cols-3 gap-4 mb-8">
+              <div className="text-center p-4 bg-white rounded-lg shadow-sm">
+                <Users className="w-6 h-6 text-cyan-600 mx-auto mb-2" />
+                <p className="text-sm text-gray-600">Responses</p>
+                <p className="text-xl font-bold text-navy-900">{poll.responses.length}</p>
+              </div>
+              <div className="text-center p-4 bg-white rounded-lg shadow-sm">
+                <Vote className="w-6 h-6 text-green-600 mx-auto mb-2" />
+                <p className="text-sm text-gray-600">Questions</p>
+                <p className="text-xl font-bold text-navy-900">{poll.questions.length}</p>
+              </div>
+              <div className="text-center p-4 bg-white rounded-lg shadow-sm">
+                <Clock className="w-6 h-6 text-orange-600 mx-auto mb-2" />
+                <p className="text-sm text-gray-600">Created</p>
+                <p className="text-sm font-medium text-navy-900">
+                  {new Date(poll.createdAt).toLocaleDateString()}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Results View */}
+          {showResults && renderResults()}
+
+          {/* Poll Form */}
+          {!isSubmitted && !showResults && (
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {poll.questions.map((question, index) => (
+                <Card key={question.id} className="card-gradient">
+                  <CardHeader>
+                    <CardTitle className="text-lg">
+                      {index + 1}. {question.title}
+                      {question.required && <span className="text-red-500 ml-1">*</span>}
+                    </CardTitle>
+                    {question.description && (
+                      <CardDescription>{question.description}</CardDescription>
+                    )}
+                  </CardHeader>
+                  <CardContent>
+                    {renderQuestion(question)}
+                  </CardContent>
+                </Card>
+              ))}
+
+              <div className="flex justify-center pt-6">
+                <Button type="submit" size="lg" className="px-8" disabled={isSubmitting}>
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  {isSubmitting ? 'Submitting...' : 'Submit Response'}
+                </Button>
+              </div>
+            </form>
+          )}
+
+          {/* Success Message */}
+          {isSubmitted && !showResults && (
+            <Card className="card-gradient text-center py-12">
+              <CardContent>
+                <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
+                <h2 className="text-2xl font-bold text-navy-900 mb-2">Thank you!</h2>
+                <p className="text-gray-600 mb-6">Your response has been recorded successfully.</p>
                 <div className="flex gap-4 justify-center">
-                  <Button size="lg" className="px-8">
-                    <Vote className="w-4 h-4 mr-2" />
-                    Submit Responses
+                  <Button onClick={() => setShowResults(true)} size="lg">
+                    <BarChart3 className="w-4 h-4 mr-2" />
+                    View Results
                   </Button>
-                  <Button variant="secondary" size="lg" className="px-8">
-                    <Eye className="w-4 h-4 mr-2" />
-                    Preview
+                  <Button variant="secondary" onClick={() => router.push('/polls')} size="lg">
+                    Back to Polls
                   </Button>
                 </div>
               </CardContent>
             </Card>
-          </form>
-
-          {/* Results Preview */}
-          <Card className="mt-8 card-gradient">
-            <CardHeader>
-              <CardTitle className="text-xl text-navy-900 flex items-center gap-2">
-                <BarChart3 className="w-5 h-5" />
-                Live Results Preview
-              </CardTitle>
-              <CardDescription>
-                Results will appear here once responses are submitted
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-700 font-medium">Very Satisfied</span>
-                  <div className="flex items-center space-x-3">
-                    <div className="w-40 bg-gray-200 rounded-full h-3 overflow-hidden">
-                      <div className="bg-gradient-to-r from-green-500 to-green-600 h-3 rounded-full transition-all duration-1000" style={{ width: '65%' }}></div>
-                    </div>
-                    <span className="text-sm text-gray-600 w-12 font-semibold">65%</span>
-                  </div>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-700 font-medium">Satisfied</span>
-                  <div className="flex items-center space-x-3">
-                    <div className="w-40 bg-gray-200 rounded-full h-3 overflow-hidden">
-                      <div className="bg-gradient-to-r from-cyan-500 to-cyan-600 h-3 rounded-full transition-all duration-1000" style={{ width: '25%' }}></div>
-                    </div>
-                    <span className="text-sm text-gray-600 w-12 font-semibold">25%</span>
-                  </div>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-700 font-medium">Neutral</span>
-                  <div className="flex items-center space-x-3">
-                    <div className="w-40 bg-gray-200 rounded-full h-3 overflow-hidden">
-                      <div className="bg-gradient-to-r from-gray-400 to-gray-500 h-3 rounded-full transition-all duration-1000" style={{ width: '10%' }}></div>
-                    </div>
-                    <span className="text-sm text-gray-600 w-12 font-semibold">10%</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="mt-8 pt-6 border-t border-gray-200">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4 text-sm text-gray-600">
-                    <div className="flex items-center gap-1">
-                      <Users className="w-4 h-4" />
-                      <span>247 responses</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Clock className="w-4 h-4" />
-                      <span>5 days left</span>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="secondary" size="sm">
-                      <Share2 className="w-4 h-4 mr-1" />
-                      Share
-                    </Button>
-                    <Button variant="secondary" size="sm">
-                      <Eye className="w-4 h-4 mr-1" />
-                      View Results
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          )}
         </div>
       </div>
     </main>

@@ -1,103 +1,140 @@
-import Image from "next/image";
+import { ArrowRight, BarChart3, CheckCircle, Sparkles, Zap } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function Home() {
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <div className="min-h-screen bg-texture">
+      {/* Hero Section */}
+      <section className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-hero"></div>
+        <div className="relative container-max py-24 px-4">
+          <div className="max-w-4xl mx-auto text-center">
+            <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2 mb-8 border border-white/20">
+              <Sparkles className="w-4 h-4 text-white" />
+              <span className="text-white/90 text-sm font-medium">Professional Polling Platform</span>
+            </div>
+            <h1 className="text-6xl font-bold text-white mb-6 tracking-wide">
+              Professional Polling
+              <span className="block bg-gradient-to-r from-cyan-300 to-green-300 bg-clip-text text-transparent">
+                Made Simple
+              </span>
+            </h1>
+            <p className="text-lg text-white/90 mb-8 max-w-2xl mx-auto text-center leading-relaxed">
+              Create, share, and analyze polls with our modern, minimalistic platform. 
+              Built for professionals who value clarity and efficiency.
+            </p>
+            <div className="flex gap-4 justify-center">
+              <Button size="lg" className="px-8 bg-white text-navy-900 hover:bg-white/90 shadow-lg">
+                Create Your First Poll
+                <ArrowRight className="ml-2 w-4 h-4" />
+              </Button>
+              <Button variant="secondary" size="lg" className="px-8 glass text-white border-white/30 hover:bg-white/10">
+                View Examples
+              </Button>
+            </div>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </section>
+
+      {/* Features Section */}
+      <section className="container-max py-20 px-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-navy-900 mb-4 tracking-wide">
+              Why Choose ALX Polly?
+            </h2>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto text-center">
+              Experience the perfect blend of professional design and powerful functionality
+            </p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-8">
+            <Card className="text-center card-gradient hover:shadow-card-hover group">
+              <CardHeader>
+                <div className="w-16 h-16 bg-gradient-to-br from-cyan-100 to-cyan-200 rounded-brand-lg mx-auto mb-6 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                  <CheckCircle className="w-8 h-8 text-cyan-600" />
+                </div>
+                <CardTitle className="text-xl">Professional Design</CardTitle>
+                <CardDescription className="text-base text-left">
+                  Clean, minimalistic interface that reflects professionalism and builds trust with your audience.
+                </CardDescription>
+              </CardHeader>
+            </Card>
+
+            <Card className="text-center card-gradient hover:shadow-card-hover group">
+              <CardHeader>
+                <div className="w-16 h-16 bg-gradient-to-br from-green-100 to-green-200 rounded-brand-lg mx-auto mb-6 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                  <Zap className="w-8 h-8 text-green-600" />
+                </div>
+                <CardTitle className="text-xl">Lightning Fast</CardTitle>
+                <CardDescription className="text-base text-left">
+                  Create and share polls in seconds. Get instant results and real-time analytics.
+                </CardDescription>
+              </CardHeader>
+            </Card>
+
+            <Card className="text-center card-gradient hover:shadow-card-hover group">
+              <CardHeader>
+                <div className="w-16 h-16 bg-gradient-to-br from-navy-100 to-navy-200 rounded-brand-lg mx-auto mb-6 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                  <BarChart3 className="w-8 h-8 text-navy-600" />
+                </div>
+                <CardTitle className="text-xl">Rich Analytics</CardTitle>
+                <CardDescription className="text-base text-left">
+                  Detailed insights and visualizations to help you understand your audience better.
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Stats Section */}
+      <section className="bg-gradient-to-r from-navy-900 via-navy-800 to-navy-900 py-16">
+        <div className="container-max px-4">
+          <div className="max-w-4xl mx-auto">
+            <div className="grid md:grid-cols-3 gap-8 text-center">
+              <div className="glass-dark rounded-brand-lg p-6">
+                <div className="text-3xl font-bold text-white mb-2">10K+</div>
+                <div className="text-white/80">Active Polls</div>
+              </div>
+              <div className="glass-dark rounded-brand-lg p-6">
+                <div className="text-3xl font-bold text-white mb-2">50K+</div>
+                <div className="text-white/80">Total Votes</div>
+              </div>
+              <div className="glass-dark rounded-brand-lg p-6">
+                <div className="text-3xl font-bold text-white mb-2">99.9%</div>
+                <div className="text-white/80">Uptime</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="container-max py-20 px-4">
+        <div className="max-w-4xl mx-auto text-center">
+          <Card className="card-gradient shadow-card-hover">
+            <CardContent className="py-16">
+              <h2 className="text-4xl font-bold text-navy-900 mb-6 tracking-wide">
+                Ready to Get Started?
+              </h2>
+              <p className="text-lg text-gray-600 mb-8 leading-relaxed max-w-2xl mx-auto">
+                Join thousands of professionals who trust ALX Polly for their polling needs. 
+                Start creating engaging polls in minutes.
+              </p>
+              <div className="flex gap-4 justify-center">
+                <Button size="lg" className="px-8">
+                  Start Creating Polls
+                  <ArrowRight className="ml-2 w-4 h-4" />
+                </Button>
+                <Button variant="secondary" size="lg" className="px-8">
+                  Learn More
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
     </div>
   );
 }
